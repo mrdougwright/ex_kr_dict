@@ -11,8 +11,10 @@ defmodule TrieTest do
   end
 
   test "insert/2 can insert a word" do
+    trie = Trie.insert("공기")
     trie = Trie.insert("ㄱㅗㅇㄱㅣ")
     assert barf(trie) == ["ㄱ", "ㅗ", "ㅇ", "ㄱ", "ㅣ"]
+    공기
   end
 
   test "insert/2 can insert an existing word" do
@@ -77,5 +79,56 @@ defmodule TrieTest do
       |> Trie.find("ㄱㅗㅏㅇ")
 
     assert found == nil
+  end
+
+  @tag :bad
+  test "prefix/2 deals with empty string" do
+    found =
+      Trie.insert("ㄱㅗㅇㄱㅣ")
+      |> Trie.insert("ㄱㅗㅇㄱㅣㅂㅏㅂ")
+      |> Trie.insert("ㄱㅗㅇㅎㅏㅇㅂㅓㅅㅡ")
+      |> Trie.prefix("")
+
+    assert found == {0, []}
+  end
+
+  @tag :bad
+  test "prefix/2 find any words that share a prefix" do
+    IO.puts("Start")
+
+    found =
+      Trie.insert("ㄱㅗㅇㄱㅣ")
+      |> Trie.insert("ㄱㅗㅇㄱㅣㅂㅏㅂ")
+      |> Trie.insert("ㄱㅗㅇㅎㅏㅇㅂㅓㅅㅡ")
+      |> Trie.insert("ㄱㅗㅇ")
+      |> Trie.insert("ㄱㅗㄷㅐㅁㅜㄴㅎㅏㄱ")
+      |> Trie.prefix("ㄱㅗㅇ")
+
+    assert found ==
+             {4,
+              [
+                ["ㄱ", "ㅗ", "ㅇ", "ㄱ", "ㅣ"],
+                ["ㄱ", "ㅗ", "ㅇ", "ㄱ", "ㅣ", "ㅂ", "ㅏ", "ㅂ"],
+                ["ㄱ", "ㅗ", "ㅇ"],
+                ["ㄱ", "ㅗ", "ㅇ", "ㅎ", "ㅏ", "ㅇ", "ㅂ", "ㅓ", "ㅅ", "ㅡ"]
+              ]}
+  end
+
+  @tag :bad
+  test "prefix/2 will return the prefix as well if it is a word", %{trie: trie} do
+    Trie.insert(trie, "공기")
+    Trie.insert(trie, "공기밥")
+    Trie.insert(trie, "공항버스")
+
+    assert {:ok, ["공기", "공기밥"]} = Trie.prefix(trie, "공기")
+  end
+
+  @tag :bad
+  test "prefix/2 will not return the prefix as well if it is not a word", %{trie: trie} do
+    Trie.insert(trie, "공기")
+    Trie.insert(trie, "공기밥")
+    Trie.insert(trie, "공항버스")
+
+    assert {:ok, ["공항버스"]} = Trie.prefix(trie, "공항버")
   end
 end
