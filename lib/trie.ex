@@ -55,27 +55,28 @@ defmodule Trie do
     end
   end
 
+  def prefix(_, ""), do: {0, []}
+
   def prefix(%TrieNode{} = trie, query) do
-    IO.puts("prefix start 1")
     prefix(trie, [], query)
   end
 
-  # This means we have reached the end of the search string
+  # This means we have reached the end of the prefix search string and it is a word boundary
   def prefix(%TrieNode{value: val, is_word: true, children: children} = current_node, found, "") do
-    IO.puts("prefix end 1")
     found = [val | found]
-    IO.puts("starting to gather prefixes at word boundry")
+    IO.puts "Starting to gather words from word prefix boundary"
+    IO.inspect Enum.reverse(found) |> Enum.map(&List.to_string/1)
     gather_prefixes(current_node, found, [Enum.reverse(found)])
   end
 
+  # We have reached the end of the prefix search string and it is not a word boundary
   def prefix(%TrieNode{children: children, value: val} = current_node, found, "") do
-    IO.puts("starting to gather prefixes at non-word boundry")
+    IO.puts "Starting to gather words from non word prefix boundary"
     gather_prefixes(current_node, [val | found], [])
   end
 
+  # We are still building up the found words and have not exhausted the prefix query
   def prefix(%TrieNode{children: children} = current_node, found, <<char::utf8>> <> rest) do
-    IO.puts("prefix start 2")
-
     case Map.get(children, char) do
       nil -> nil
       next_node -> prefix(%{next_node | prev: current_node}, [char | found], rest)
@@ -87,8 +88,10 @@ defmodule Trie do
     [Enum.reverse([val | current]) | found]
   end
 
+  # We hit a leaf that is not a word. This should never happen
   defp gather_prefixes(%{children: children, value: val, is_word: false}, _current, found)
        when children == %{} do
+    IO.puts "HAY THIS SHOULD NEVER HAPPEN"
     found
   end
 
@@ -100,14 +103,10 @@ defmodule Trie do
 
       {_, %{is_word: true, children: next_children, value: val} = next_node} ->
         word = current ++ [val]
-        IO.puts("adding the word")
-        IO.inspect(word)
         gather_prefixes(next_node, word, [word | found])
     end)
     |> (fn res ->
-          IO.puts("Result here")
-          IO.inspect(Enum.map(res, &List.to_string(&1)))
-          res
-        end).()
+          {length(res), Enum.map(res, &List.to_string/1)}
+    end).()
   end
 end
